@@ -9,7 +9,7 @@ namespace Models.Interfaces
         Task<AuthResponse> LoginWithEmailPasswordAsync(string email, string password);
         Task<AuthResponse> LoginWithGoogleAsync(string idToken);
         Task<AuthResponse> RegisterWithEmailPasswordAsync(string email, string password, string displayName);
-        Task<UserRecord> VerifyGoogleTokenAsync(string idToken);
+        Task<UserData> VerifyGoogleTokenAsync(string idToken);
         Task<string> CreateCustomTokenAsync(string uid);
     }
 } 

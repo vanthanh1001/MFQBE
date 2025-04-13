@@ -68,12 +68,33 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ValidIssuer = "https://securetoken.google.com/mfquest-b89b0",
             ValidAudience = "mfquest-b89b0",
-            // Không cần IssuerSigningKey khi sử dụng Authority, Firebase sẽ tự cung cấp khóa công khai
-            ValidateIssuerSigningKey = false
+            ValidateIssuerSigningKey = false,
+            // Thêm cấu hình chi tiết cho xác thực
+            ClockSkew = TimeSpan.Zero // Giảm độ trễ
         };
         
         // Bật để xem chi tiết lỗi token
         options.IncludeErrorDetails = true;
+        
+        // Thêm event handlers để ghi log quá trình xác thực
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine($"Authentication failed: {context.Exception.Message}");
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                Console.WriteLine("Token được xác thực thành công");
+                return Task.CompletedTask;
+            },
+            OnMessageReceived = context =>
+            {
+                Console.WriteLine($"Received token: {context.Token?.Substring(0, Math.Min(10, context.Token?.Length ?? 0))}...");
+                return Task.CompletedTask;
+            }
+        };
     });
 
 // Cấu hình Database

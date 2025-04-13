@@ -167,30 +167,65 @@ namespace Services.Implementations
                     }
                 }
                 
-                // Phân tích response
+                // Phân tích response từ Firebase Auth
                 var authResponse = JsonSerializer.Deserialize<JsonElement>(responseBody);
                 var localId = authResponse.GetProperty("localId").GetString(); // Firebase UID
                 var idToken = authResponse.GetProperty("idToken").GetString();
+                var displayName = authResponse.TryGetProperty("displayName", out var displayNameProperty) 
+                    ? displayNameProperty.GetString() 
+                    : email;
                 
                 Console.WriteLine($"Firebase auth successful for UID: {localId}");
                 
-                // Lấy thông tin user từ Firebase Auth
-                var userRecord = await _adminAuth.GetUserAsync(localId);
-                Console.WriteLine($"Got user record: {userRecord.Email}");
-
-                // Kiểm tra user trong MySQL
-                var dbUser = await _dbContext.Users
-                    .FirstOrDefaultAsync(u => u.FirebaseUid == userRecord.Uid);
-                
-                if (dbUser == null)
+                // Tạo đối tượng UserData từ phản hồi REST API thay vì gọi Firebase Admin SDK
+                var userData = new UserData
                 {
-                    throw new NotFoundException($"User not found in database");
+                    Uid = localId,
+                    Email = email,
+                    DisplayName = displayName,
+                    PhotoUrl = null, // Firebase REST API không trả về URL ảnh qua email/password login
+                    Provider = "password"
+                };
+
+                try 
+                {
+                    // Kiểm tra user trong MySQL
+                    var dbUser = await _dbContext.Users
+                        .FirstOrDefaultAsync(u => u.FirebaseUid == localId);
+                    
+                    if (dbUser == null)
+                    {
+                        Console.WriteLine($"User with Firebase UID {localId} not found in database. Creating new user record.");
+                        
+                        // Tạo user trong MySQL nếu chưa tồn tại
+                        var appUser = new Models.User
+                        {
+                            FirebaseUid = localId,
+                            Email = email,
+                            DisplayName = displayName,
+                            CreatedAt = DateTime.UtcNow,
+                            Username = email
+                        };
+                        
+                        await _dbContext.Users.AddAsync(appUser);
+                        await _dbContext.SaveChangesAsync();
+                        Console.WriteLine($"Created MySQL user with ID: {appUser.Id}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Found existing user in database with ID: {dbUser.Id}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Ghi log nhưng không làm gián đoạn quá trình đăng nhập
+                    Console.WriteLine($"Warning: Error checking or creating user in database: {ex.Message}");
                 }
 
                 return new AuthResponse
                 {
                     Token = idToken,
-                    User = MapToUserData(userRecord, "password")
+                    User = userData
                 };
             }
             catch (HttpRequestException ex)
@@ -220,84 +255,102 @@ namespace Services.Implementations
         {
             try
             {
-                // Validate idToken trước
+                // Validate idToken từ Google
                 var payload = await GoogleJsonWebSignature.ValidateAsync(idToken);
+                string email = payload.Email;
+                string name = payload.Name;
+                string photoUrl = payload.Picture;
+                bool emailVerified = payload.EmailVerified;
                 
-                // Lấy hoặc tạo user trong Firebase
-                UserRecord userRecord;
-                try
-                {
-                    userRecord = await _adminAuth.GetUserByEmailAsync(payload.Email);
-                }
-                catch (FirebaseAdmin.Auth.FirebaseAuthException)
-                {
-                    // Tạo user mới nếu không tìm thấy
-                    var userArgs = new UserRecordArgs
-                    {
-                        Email = payload.Email,
-                        DisplayName = payload.Name,
-                        PhotoUrl = payload.Picture,
-                        EmailVerified = payload.EmailVerified
-                    };
-                    userRecord = await _adminAuth.CreateUserAsync(userArgs);
-                }
+                Console.WriteLine($"Validated Google token for email: {email}");
                 
-                // Tạo custom token từ Firebase UID
-                string customToken = await CreateCustomTokenAsync(userRecord.Uid);
+                // Tạo Firebase ID token bằng cách gọi Firebase Auth API
+                string apiKey = _configuration["Firebase:ApiKey"];
+                string signInUrl = $"https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key={apiKey}";
                 
-                // Đổi custom token lấy ID token
-                var request = new
+                var signInRequest = new
                 {
-                    token = customToken,
+                    postBody = $"id_token={idToken}&providerId=google.com",
+                    requestUri = "https://mfquest-b89b0.firebaseapp.com",
+                    returnIdpCredential = true,
                     returnSecureToken = true
                 };
-
-                var jsonContent = JsonSerializer.Serialize(request);
+                
+                var jsonContent = JsonSerializer.Serialize(signInRequest);
                 var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
                 
-                string apiKey = _configuration["Firebase:ApiKey"];
-                string exchangeUrl = $"https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key={apiKey}";
-                
-                var response = await _httpClient.PostAsync(exchangeUrl, httpContent);
+                var response = await _httpClient.PostAsync(signInUrl, httpContent);
                 var responseBody = await response.Content.ReadAsStringAsync();
                 
                 if (!response.IsSuccessStatusCode)
                 {
-                    throw new Exception($"Error exchanging custom token: {responseBody}");
+                    var errorResponse = JsonSerializer.Deserialize<JsonElement>(responseBody);
+                    var errorMessage = "Unknown error";
+                    if (errorResponse.TryGetProperty("error", out var error) &&
+                        error.TryGetProperty("message", out var message))
+                    {
+                        errorMessage = message.GetString();
+                    }
+                    throw new Exception($"Error authenticating with Firebase: {errorMessage}");
                 }
                 
-                // Lấy ID token từ response
-                var tokenResponse = JsonSerializer.Deserialize<JsonElement>(responseBody);
-                var firebaseIdToken = tokenResponse.GetProperty("idToken").GetString();
+                var authResponse = JsonSerializer.Deserialize<JsonElement>(responseBody);
+                var localId = authResponse.GetProperty("localId").GetString();
+                var firebaseIdToken = authResponse.GetProperty("idToken").GetString();
+
+                // Tạo đối tượng UserData từ thông tin Google
+                var userData = new UserData
+                {
+                    Uid = localId,
+                    Email = email,
+                    DisplayName = name,
+                    PhotoUrl = photoUrl,
+                    Provider = "google"
+                };
                 
                 // Kiểm tra user trong MySQL
-                var dbUser = await _dbContext.Users
-                    .FirstOrDefaultAsync(u => u.FirebaseUid == userRecord.Uid);
-                
-                if (dbUser == null)
+                try
                 {
-                    // Tạo user trong MySQL nếu chưa có
-                    var appUser = new Models.User
-                    {
-                        FirebaseUid = userRecord.Uid,
-                        Email = payload.Email,
-                        DisplayName = payload.Name,
-                        CreatedAt = DateTime.UtcNow,
-                        Username = payload.Email
-                    };
+                    var dbUser = await _dbContext.Users
+                        .FirstOrDefaultAsync(u => u.FirebaseUid == localId);
                     
-                    await _dbContext.Users.AddAsync(appUser);
-                    await _dbContext.SaveChangesAsync();
+                    if (dbUser == null)
+                    {
+                        // Tạo user trong MySQL nếu chưa có
+                        var appUser = new Models.User
+                        {
+                            FirebaseUid = localId,
+                            Email = email,
+                            DisplayName = name,
+                            CreatedAt = DateTime.UtcNow,
+                            Username = email
+                        };
+                        
+                        await _dbContext.Users.AddAsync(appUser);
+                        await _dbContext.SaveChangesAsync();
+                        Console.WriteLine($"Created MySQL user with ID: {appUser.Id} for Google user");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Found existing user in database with ID: {dbUser.Id} for Google user");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Ghi log nhưng không làm gián đoạn quá trình đăng nhập
+                    Console.WriteLine($"Warning: Error checking or creating user in database: {ex.Message}");
                 }
                 
                 return new AuthResponse
                 {
                     Token = firebaseIdToken,
-                    User = MapToUserData(userRecord, "google")
+                    User = userData
                 };
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Google login failed: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 throw new Exception("Google login failed", ex);
             }
         }
@@ -430,29 +483,43 @@ namespace Services.Implementations
             }
         }
 
-        public async Task<UserRecord> VerifyGoogleTokenAsync(string idToken)
+        public async Task<UserData> VerifyGoogleTokenAsync(string idToken)
         {
-            var payload = await GoogleJsonWebSignature.ValidateAsync(idToken);
             try
             {
-                return await _adminAuth.GetUserByEmailAsync(payload.Email);
-            }
-            catch (FirebaseAdmin.Auth.FirebaseAuthException)
-            {
-                var userArgs = new UserRecordArgs
+                var payload = await GoogleJsonWebSignature.ValidateAsync(idToken);
+                
+                // Trả về thông tin người dùng từ token, không sử dụng Firebase Admin SDK
+                return new UserData
                 {
+                    Uid = payload.Subject, // Google's subject là ID người dùng duy nhất
                     Email = payload.Email,
                     DisplayName = payload.Name,
                     PhotoUrl = payload.Picture,
-                    EmailVerified = payload.EmailVerified
+                    Provider = "google"
                 };
-                return await _adminAuth.CreateUserAsync(userArgs);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error validating Google token: {ex.Message}");
+                throw new Exception("Failed to validate Google token", ex);
             }
         }
 
         public async Task<string> CreateCustomTokenAsync(string uid)
         {
-            return await _adminAuth.CreateCustomTokenAsync(uid);
+            try
+            {
+                // Tạo một token đơn giản thay vì sử dụng Firebase Admin SDK
+                // Chỉ dùng cho mục đích phát triển
+                string simpleToken = $"{uid}_{DateTime.UtcNow.Ticks}";
+                return await Task.FromResult(simpleToken);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error creating custom token: {ex.Message}");
+                throw new Exception("Failed to create custom token", ex);
+            }
         }
 
         public async Task<List<UserData>> GetAllUsersAsync()

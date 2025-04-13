@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Models.Interfaces;
 using Models.Auth;
+using FitnessApp.API.Models;
 
 namespace Controllers
 {
@@ -14,13 +15,16 @@ namespace Controllers
     {
         private readonly IFirebaseAuthService _firebaseAuthService;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<GoogleAuthController> _logger;
 
         public GoogleAuthController(
             IFirebaseAuthService firebaseAuthService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            ILogger<GoogleAuthController> logger)
         {
             _firebaseAuthService = firebaseAuthService;
             _configuration = configuration;
+            _logger = logger;
         }
 
         [HttpPost("login")]
@@ -28,46 +32,30 @@ namespace Controllers
         {
             try
             {
-                // Xác thực với Firebase
-                var userRecord = await _firebaseAuthService.VerifyGoogleTokenAsync(request.IdToken);
-                var firebaseToken = await _firebaseAuthService.CreateCustomTokenAsync(userRecord.Uid);
+                _logger.LogInformation("Bắt đầu đăng nhập với Google");
                 
-                // Tạo JWT token cho backend
-                var claims = new List<Claim>
+                // Xác thực với Google và lấy thông tin người dùng
+                var userData = await _firebaseAuthService.VerifyGoogleTokenAsync(request.IdToken);
+                
+                // Gọi API để đăng nhập/đăng ký với Firebase bằng thông tin Google đã được xác thực
+                var authResponse = await _firebaseAuthService.LoginWithGoogleAsync(request.IdToken);
+                
+                return Ok(new ApiResponse<AuthResponse>
                 {
-                    new Claim(ClaimTypes.NameIdentifier, userRecord.Uid),
-                    new Claim(ClaimTypes.Email, userRecord.Email),
-                    new Claim(ClaimTypes.Name, userRecord.DisplayName),
-                    new Claim("PhotoUrl", userRecord.PhotoUrl ?? ""),
-                    new Claim("Provider", "Google")
-                };
-
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
-                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-                var jwtToken = new JwtSecurityToken(
-                    issuer: _configuration["Jwt:Issuer"],
-                    audience: _configuration["Jwt:Audience"],
-                    claims: claims,
-                    expires: DateTime.Now.AddDays(1),
-                    signingCredentials: creds);
-
-                return Ok(new
-                {
-                    token = new JwtSecurityTokenHandler().WriteToken(jwtToken),
-                    firebaseToken = firebaseToken,
-                    user = new
-                    {
-                        id = userRecord.Uid,
-                        email = userRecord.Email,
-                        displayName = userRecord.DisplayName,
-                        photoUrl = userRecord.PhotoUrl
-                    }
+                    Success = true,
+                    Message = "Đăng nhập Google thành công",
+                    Data = authResponse
                 });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                _logger.LogError($"Google login error: {ex.Message}");
+                return BadRequest(new ApiResponse<AuthResponse>
+                {
+                    Success = false,
+                    Message = ex.Message,
+                    Data = null
+                });
             }
         }
     }
