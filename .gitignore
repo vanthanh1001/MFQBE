@@ -1,0 +1,31 @@
+# Firebase credentials
+firebase-adminsdk.json
+**/firebase-adminsdk*.json
+credentials/*.json
+!credentials/credentials.example.json
+
+# Build output
+bin/
+obj/
+
+# IDE
+.vs/
+.vscode/
+*.user
+
+# Configuration files with secrets
+appsettings.json
+appsettings.*.json
+!appsettings.example.json
+!appsettings.Development.example.json
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite # Firebase credentials
+**/firebase-adminsdk.json
+**/credentials/*.json
+**/credentials/*.json >> .gitignore*/credentials/*.example.json

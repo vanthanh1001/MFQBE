@@ -1,0 +1,25 @@
+{
+  "Files": [
+    {
+      "Id": "C:\\Users\\Lenovo\\OneDrive\\Desktop\\FitnessApp.API\\MFQBE\\wwwroot\\index.html",
+      "PackagePath": "staticwebassets\\index.html"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.FitnessApp.API.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.FitnessApp.API.props",
+      "PackagePath": "build\\FitnessApp.API.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.FitnessApp.API.props",
+      "PackagePath": "buildMultiTargeting\\FitnessApp.API.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.FitnessApp.API.props",
+      "PackagePath": "buildTransitive\\FitnessApp.API.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

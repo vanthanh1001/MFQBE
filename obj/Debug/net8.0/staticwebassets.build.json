@@ -1,0 +1,39 @@
+{
+  "Version": 1,
+  "Hash": "d2afo9EqWgFlhhwB8xwCk4wFsljsymdt+pdfeVkiSY0=",
+  "Source": "FitnessApp.API",
+  "BasePath": "_content/FitnessApp.API",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "FitnessApp.API\\wwwroot",
+      "Source": "FitnessApp.API",
+      "ContentRoot": "C:\\Users\\Lenovo\\OneDrive\\Desktop\\FitnessApp.API\\MFQBE\\wwwroot\\",
+      "BasePath": "_content/FitnessApp.API",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "C:\\Users\\Lenovo\\OneDrive\\Desktop\\FitnessApp.API\\MFQBE\\wwwroot\\index.html",
+      "SourceId": "FitnessApp.API",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\Lenovo\\OneDrive\\Desktop\\FitnessApp.API\\MFQBE\\wwwroot\\",
+      "BasePath": "_content/FitnessApp.API",
+      "RelativePath": "index.html",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\index.html"
+    }
+  ]
+}
