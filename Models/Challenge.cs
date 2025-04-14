@@ -11,6 +11,7 @@ namespace Models
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string RewardDescription { get; set; }
+        public int RewardPoints { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
 

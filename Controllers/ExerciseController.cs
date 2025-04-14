@@ -66,19 +66,22 @@ public class ExerciseController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ExerciseResponseDto>> Create(CreateExerciseDto createDto)
     {
-        // Lấy userId từ claim
-        var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int userId))
+        // Lấy Firebase UID từ claim
+        var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(firebaseUid))
         {
             return Unauthorized("User không hợp lệ");
         }
 
-        // Kiểm tra vai trò người dùng
-        var user = await _userRepository.GetByIdAsync(userId);
+        // Tìm userId từ firebaseUid
+        var users = await _userRepository.FindAsync(u => u.FirebaseUid == firebaseUid);
+        var user = users.FirstOrDefault();
         if (user == null)
         {
             return Unauthorized("User không tồn tại");
         }
+
+        var userId = user.Id;
 
         // Chỉ cho phép Trainer hoặc Admin tạo bài tập
         if (user.Role != UserRole.Trainer && user.Role != UserRole.Admin)
@@ -120,20 +123,28 @@ public class ExerciseController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, UpdateExerciseDto updateDto)
     {
-        // Lấy userId từ claim
-        var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int userId))
+        // Lấy Firebase UID từ claim
+        var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(firebaseUid))
         {
             return Unauthorized("User không hợp lệ");
         }
+
+        // Tìm userId từ firebaseUid
+        var users = await _userRepository.FindAsync(u => u.FirebaseUid == firebaseUid);
+        var user = users.FirstOrDefault();
+        if (user == null)
+        {
+            return Unauthorized("User không tồn tại");
+        }
+
+        var userId = user.Id;
 
         var exercise = await _exerciseRepository.GetByIdAsync(id);
         if (exercise == null)
             return NotFound();
 
         // Kiểm tra vai trò người dùng và quyền sở hữu
-        var user = await _userRepository.GetByIdAsync(userId);
-        
         // Chỉ cho phép Trainer/Admin hoặc người tạo sửa bài tập
         bool isAdmin = user.Role == UserRole.Admin;
         bool isOwner = exercise.CreatedById == userId;
@@ -159,20 +170,28 @@ public class ExerciseController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        // Lấy userId từ claim
-        var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int userId))
+        // Lấy Firebase UID từ claim
+        var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(firebaseUid))
         {
             return Unauthorized("User không hợp lệ");
         }
+
+        // Tìm userId từ firebaseUid
+        var users = await _userRepository.FindAsync(u => u.FirebaseUid == firebaseUid);
+        var user = users.FirstOrDefault();
+        if (user == null)
+        {
+            return Unauthorized("User không tồn tại");
+        }
+
+        var userId = user.Id;
 
         var exercise = await _exerciseRepository.GetByIdAsync(id);
         if (exercise == null)
             return NotFound();
 
         // Kiểm tra vai trò người dùng và quyền sở hữu
-        var user = await _userRepository.GetByIdAsync(userId);
-        
         // Chỉ cho phép Admin hoặc người tạo xóa bài tập
         bool isAdmin = user.Role == UserRole.Admin;
         bool isOwner = exercise.CreatedById == userId;

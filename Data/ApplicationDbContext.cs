@@ -27,6 +27,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<WorkoutSession> WorkoutSessions { get; set; }
     public DbSet<ExercisePerformance> ExercisePerformances { get; set; }
     public DbSet<FitnessGoal> FitnessGoals { get; set; }
+    public DbSet<Meal> Meals { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -125,6 +126,22 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(n => n.User)
                 .WithMany(u => u.Nutritions)
                 .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Meal configuration
+        modelBuilder.Entity<Meal>(entity =>
+        {
+            entity.ToTable("Meals");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Type).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Ingredients).HasMaxLength(1000);
+            
+            entity.HasOne(m => m.User)
+                .WithMany()
+                .HasForeignKey(m => m.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 

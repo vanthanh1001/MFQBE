@@ -9,6 +9,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using System.IO;
+using Models.Interfaces;
 
 namespace Controllers
 {
@@ -51,6 +54,117 @@ namespace Controllers
             });
             
             return Ok(trainerDtos);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<UserDto>> GetTrainerById(int id)
+        {
+            var trainerId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            
+            var trainer = await _userRepository.GetByIdAsync(id);
+            if (trainer == null || trainer.Role != UserRole.Trainer)
+                return NotFound();
+                
+            var trainerDto = new UserDto
+            {
+                Id = trainer.Id,
+                Username = trainer.Username,
+                Email = trainer.Email,
+                DisplayName = trainer.DisplayName,
+                FirstName = trainer.FirstName,
+                LastName = trainer.LastName,
+                ProfilePicture = trainer.ProfilePicture,
+                PhoneNumber = trainer.PhoneNumber,
+                Role = trainer.Role,
+                CreatedAt = trainer.CreatedAt
+            };
+            
+            return Ok(trainerDto);
+        }
+        
+        [HttpGet("profile")]
+        public async Task<ActionResult<UserDto>> GetMyProfile()
+        {
+            var trainerId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            
+            var trainer = await _userRepository.GetByIdAsync(trainerId);
+            if (trainer == null || trainer.Role != UserRole.Trainer)
+                return NotFound();
+                
+            var trainerDto = new UserDto
+            {
+                Id = trainer.Id,
+                Username = trainer.Username,
+                Email = trainer.Email,
+                DisplayName = trainer.DisplayName,
+                FirstName = trainer.FirstName,
+                LastName = trainer.LastName,
+                ProfilePicture = trainer.ProfilePicture,
+                PhoneNumber = trainer.PhoneNumber,
+                Role = trainer.Role,
+                CreatedAt = trainer.CreatedAt
+            };
+            
+            return Ok(trainerDto);
+        }
+        
+        [HttpGet("top")]
+        public async Task<ActionResult<IEnumerable<UserDto>>> GetTopTrainers()
+        {
+            // Lấy top 5 trainer có nhiều bài tập được tạo nhất
+            var topTrainers = await _context.Users
+                .Where(u => u.Role == UserRole.Trainer)
+                .OrderByDescending(u => u.CreatedExercises.Count)
+                .Take(5)
+                .ToListAsync();
+                
+            var trainerDtos = topTrainers.Select(t => new UserDto
+            {
+                Id = t.Id,
+                Username = t.Username,
+                Email = t.Email,
+                DisplayName = t.DisplayName,
+                FirstName = t.FirstName,
+                LastName = t.LastName,
+                ProfilePicture = t.ProfilePicture,
+                PhoneNumber = t.PhoneNumber,
+                Role = t.Role,
+                CreatedAt = t.CreatedAt
+            });
+            
+            return Ok(trainerDtos);
+        }
+        
+        [HttpGet("popular-exercises")]
+        public async Task<ActionResult<IEnumerable<ExerciseResponseDto>>> GetPopularExercises()
+        {
+            var exercises = await _context.Exercises
+                .Include(e => e.CreatedBy)
+                .Where(e => e.CreatedBy.Role == UserRole.Trainer)
+                .OrderByDescending(e => e.WorkoutPlans.Count)
+                .Take(10)
+                .Select(e => new ExerciseResponseDto
+                {
+                    Id = e.Id,
+                    Name = e.Name,
+                    Description = e.Description,
+                    Sets = e.Sets,
+                    Reps = e.Reps,
+                    RestTime = e.RestTime,
+                    CreatedById = e.CreatedById,
+                    CreatedByUsername = e.CreatedBy.Username,
+                    CreatedAt = e.CreatedAt,
+                    UpdatedAt = e.UpdatedAt,
+                    CreatorInfo = new UserDto
+                    {
+                        Id = e.CreatedBy.Id,
+                        Username = e.CreatedBy.Username,
+                        ProfilePicture = e.CreatedBy.ProfilePicture
+                    }
+                })
+                .ToListAsync();
+                
+            return Ok(exercises);
         }
 
         [HttpGet("exercises")]

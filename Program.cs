@@ -8,6 +8,7 @@ using Models.Interfaces;
 using Services.Implementations;
 using FitnessApp.API.Models;
 using FitnessApp.API.Middleware;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,7 +69,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ValidIssuer = "https://securetoken.google.com/mfquest-b89b0",
             ValidAudience = "mfquest-b89b0",
-            ValidateIssuerSigningKey = false,
+            ValidateIssuerSigningKey = true,
             // Thêm cấu hình chi tiết cho xác thực
             ClockSkew = TimeSpan.Zero // Giảm độ trễ
         };
@@ -82,11 +83,25 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             OnAuthenticationFailed = context =>
             {
                 Console.WriteLine($"Authentication failed: {context.Exception.Message}");
+                Console.WriteLine($"Authentication failed details: {context.Exception}");
                 return Task.CompletedTask;
             },
             OnTokenValidated = context =>
             {
                 Console.WriteLine("Token được xác thực thành công");
+                // Đảm bảo ClaimTypes.NameIdentifier luôn có trong token
+                var identity = context.Principal.Identity as ClaimsIdentity;
+                if (identity != null)
+                {
+                    // Lấy UID từ token Firebase
+                    var uidClaim = identity.FindFirst("user_id") ?? identity.FindFirst("sub");
+                    if (uidClaim != null && !identity.HasClaim(c => c.Type == ClaimTypes.NameIdentifier))
+                    {
+                        // Thêm claim chuẩn NameIdentifier nếu chưa có
+                        identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, uidClaim.Value));
+                        Console.WriteLine($"Added NameIdentifier claim: {uidClaim.Value}");
+                    }
+                }
                 return Task.CompletedTask;
             },
             OnMessageReceived = context =>

@@ -3,7 +3,13 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Models;
+using Models.DTOs;
 using Models.Enums;
+using Models.Interfaces;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using System.Collections.Generic;
+using System;
 
 public class AuthService : IAuthService
 {

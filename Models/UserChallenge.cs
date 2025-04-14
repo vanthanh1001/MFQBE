@@ -6,9 +6,10 @@ namespace Models
     {
         public int UserId { get; set; }
         public int ChallengeId { get; set; }
-        public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
         public int Points { get; set; }
-        public bool IsCompleted { get; set; }
+        public DateTime JoinDate { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
 
         // Navigation properties
         public virtual User User { get; set; }

@@ -25,26 +25,24 @@ namespace Controllers
         }
 
         [HttpGet("plans")]
-        public async Task<ActionResult<IEnumerable<WorkoutPlanDto>>> GetWorkoutPlans()
+        public async Task<ActionResult<IEnumerable<WorkoutPlanDto>>> GetUserWorkoutPlans()
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
             
-            var plans = await _context.WorkoutPlans
-                .Include(wp => wp.Exercises)
+            var workoutPlans = await _context.WorkoutPlans
                 .Where(wp => wp.UserId == userId)
+                .Select(wp => new WorkoutPlanDto
+                {
+                    Id = wp.Id,
+                    Name = wp.Name,
+                    Description = wp.Description,
+                    DurationInMinutes = EstimateWorkoutDuration(wp.Exercises.ToList()),
+                    Difficulty = CalculateDifficulty(wp.Exercises.ToList()),
+                    ExerciseCount = wp.Exercises.Count
+                })
                 .ToListAsync();
-
-            var planDtos = plans.Select(p => new WorkoutPlanDto
-            {
-                Id = p.Id,
-                Name = p.Name,
-                Description = p.Description,
-                DurationInMinutes = EstimateWorkoutDuration(p.Exercises.ToList()),
-                Difficulty = CalculateDifficulty(p.Exercises.ToList()),
-                ExerciseCount = p.Exercises.Count
-            }).ToList();
-
-            return Ok(planDtos);
+                
+            return Ok(workoutPlans);
         }
 
         [HttpGet("plans/{id}")]
@@ -57,7 +55,7 @@ namespace Controllers
                 .FirstOrDefaultAsync(wp => wp.Id == id && wp.UserId == userId);
 
             if (plan == null)
-            return NotFound($"Workout plan with id {id} not found");
+                return NotFound($"Workout plan with id {id} not found");
 
             var exerciseDtos = plan.Exercises.Select(e => new ExerciseDto
             {
@@ -90,19 +88,19 @@ namespace Controllers
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
             
-            // Kiểm tra các exerciseId có tồn tại không
+            // Validate Exercise IDs
             var exerciseIds = request.ExerciseIds;
             var exercises = await _context.Exercises
                 .Where(e => exerciseIds.Contains(e.Id))
                 .ToListAsync();
-
+                
             if (exercises.Count != exerciseIds.Count)
             {
                 var foundIds = exercises.Select(e => e.Id).ToList();
-                var notFoundIds = exerciseIds.Except(foundIds).ToList();
-                return BadRequest($"Không tìm thấy các bài tập với ID: {string.Join(", ", notFoundIds)}");
+                var missingIds = exerciseIds.Where(id => !foundIds.Contains(id)).ToList();
+                return BadRequest($"Some exercises were not found: {string.Join(", ", missingIds)}");
             }
-
+            
             var workoutPlan = new WorkoutPlan
             {
                 Name = request.Name,
@@ -111,10 +109,10 @@ namespace Controllers
                 CreatedAt = DateTime.UtcNow,
                 Exercises = exercises
             };
-
+            
             _context.WorkoutPlans.Add(workoutPlan);
             await _context.SaveChangesAsync();
-
+            
             var planDto = new WorkoutPlanDto
             {
                 Id = workoutPlan.Id,
@@ -124,7 +122,7 @@ namespace Controllers
                 Difficulty = CalculateDifficulty(exercises),
                 ExerciseCount = exercises.Count
             };
-
+            
             return CreatedAtAction(nameof(GetWorkoutPlanDetail), new { id = workoutPlan.Id }, planDto);
         }
 
@@ -136,38 +134,37 @@ namespace Controllers
             var workoutPlan = await _context.WorkoutPlans
                 .Include(wp => wp.Exercises)
                 .FirstOrDefaultAsync(wp => wp.Id == id && wp.UserId == userId);
-
+                
             if (workoutPlan == null)
                 return NotFound($"Workout plan with id {id} not found");
-
-            // Kiểm tra các exerciseId có tồn tại không
+                
+            // Validate Exercise IDs
             var exerciseIds = request.ExerciseIds;
             var exercises = await _context.Exercises
                 .Where(e => exerciseIds.Contains(e.Id))
                 .ToListAsync();
-
+                
             if (exercises.Count != exerciseIds.Count)
             {
                 var foundIds = exercises.Select(e => e.Id).ToList();
-                var notFoundIds = exerciseIds.Except(foundIds).ToList();
-                return BadRequest($"Không tìm thấy các bài tập với ID: {string.Join(", ", notFoundIds)}");
+                var missingIds = exerciseIds.Where(id => !foundIds.Contains(id)).ToList();
+                return BadRequest($"Some exercises were not found: {string.Join(", ", missingIds)}");
             }
-
-            // Cập nhật thông tin
+            
+            // Update plan
             workoutPlan.Name = request.Name;
             workoutPlan.Description = request.Description;
             workoutPlan.UpdatedAt = DateTime.UtcNow;
             
-            // Cập nhật danh sách bài tập
+            // Clear and reassign exercises
             workoutPlan.Exercises.Clear();
             foreach (var exercise in exercises)
             {
                 workoutPlan.Exercises.Add(exercise);
             }
-
-            _context.WorkoutPlans.Update(workoutPlan);
+            
             await _context.SaveChangesAsync();
-
+            
             return NoContent();
         }
 
@@ -178,13 +175,13 @@ namespace Controllers
             
             var workoutPlan = await _context.WorkoutPlans
                 .FirstOrDefaultAsync(wp => wp.Id == id && wp.UserId == userId);
-
+                
             if (workoutPlan == null)
                 return NotFound($"Workout plan with id {id} not found");
-
+                
             _context.WorkoutPlans.Remove(workoutPlan);
             await _context.SaveChangesAsync();
-
+            
             return NoContent();
         }
 
@@ -336,7 +333,13 @@ namespace Controllers
                     CreatedById = e.CreatedById,
                     CreatedByUsername = e.CreatedBy.Username,
                     CreatedAt = e.CreatedAt,
-                    UpdatedAt = e.UpdatedAt
+                    UpdatedAt = e.UpdatedAt,
+                    CreatorInfo = new UserDto
+                    {
+                        Id = e.CreatedBy.Id,
+                        Username = e.CreatedBy.Username,
+                        ProfilePicture = e.CreatedBy.ProfilePicture
+                    }
                 })
                 .ToListAsync();
                 
@@ -364,26 +367,25 @@ namespace Controllers
         private string CalculateDifficulty(List<Exercise> exercises)
         {
             if (exercises.Count == 0)
-                return "Dễ";
+                return "Beginner";
                 
-            // Tính điểm khó dựa trên số bài tập, số set, rep, và thời gian nghỉ
-            double totalScore = 0;
+            // Tính điểm khó dựa trên số set, rep và thời gian nghỉ
+            double totalDifficultyScore = 0;
             foreach (var exercise in exercises)
             {
-                double exerciseScore = exercise.Sets * exercise.Reps / (exercise.RestTime / 30.0);
-                totalScore += exerciseScore;
+                double exerciseScore = (exercise.Sets * exercise.Reps) / (double)(exercise.RestTime + 30);
+                totalDifficultyScore += exerciseScore;
             }
             
-            // Tính điểm trung bình
-            double averageScore = totalScore / exercises.Count;
+            double averageScore = totalDifficultyScore / exercises.Count;
             
-            // Phân loại độ khó
-            if (averageScore < 10)
-                return "Dễ";
-            else if (averageScore < 20)
-                return "Vừa";
+            // Phân loại dựa trên điểm trung bình
+            if (averageScore < 0.5)
+                return "Beginner";
+            else if (averageScore < 1.0)
+                return "Intermediate";
             else
-                return "Khó";
+                return "Advanced";
         }
         
         #endregion

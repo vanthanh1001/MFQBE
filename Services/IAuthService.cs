@@ -1,3 +1,6 @@
+using System.Threading.Tasks;
+using Models.DTOs;
+
 public interface IAuthService
 {
     Task<bool> RegisterAsync(UserRegisterDto userDto);

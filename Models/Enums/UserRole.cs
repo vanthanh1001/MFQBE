@@ -1,6 +1,9 @@
-public enum UserRole
+namespace Models.Enums
 {
-    User = 0,
-    Trainer = 1,
-    Admin = 2
+    public enum UserRole
+    {
+        User = 0,
+        Trainer = 1,
+        Admin = 2
+    }
 } 

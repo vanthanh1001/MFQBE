@@ -26,7 +26,16 @@ namespace Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<FitnessGoalDto>>> GetGoals([FromQuery] bool activeOnly = true)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (user == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
+                
+            var userId = user.Id;
             
             var query = _context.FitnessGoals
                 .Where(g => g.UserId == userId);
@@ -56,7 +65,16 @@ namespace Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<FitnessGoalDto>> GetGoal(int id)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (user == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
+                
+            var userId = user.Id;
             
             var goal = await _context.FitnessGoals
                 .FirstOrDefaultAsync(g => g.Id == id && g.UserId == userId);
@@ -84,7 +102,16 @@ namespace Controllers
         [HttpPost]
         public async Task<ActionResult<FitnessGoalDto>> CreateGoal(CreateGoalDto createDto)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (user == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
+                
+            var userId = user.Id;
             
             var goal = new FitnessGoal
             {
@@ -122,7 +149,16 @@ namespace Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateGoal(int id, CreateGoalDto updateDto)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (user == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
+                
+            var userId = user.Id;
             
             var goal = await _context.FitnessGoals
                 .FirstOrDefaultAsync(g => g.Id == id && g.UserId == userId);
@@ -147,7 +183,16 @@ namespace Controllers
         [HttpPut("{id}/progress")]
         public async Task<IActionResult> UpdateGoalProgress(int id, UpdateGoalProgressDto progressDto)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (user == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
+                
+            var userId = user.Id;
             
             var goal = await _context.FitnessGoals
                 .FirstOrDefaultAsync(g => g.Id == id && g.UserId == userId);
@@ -168,7 +213,16 @@ namespace Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteGoal(int id)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (user == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
+                
+            var userId = user.Id;
             
             var goal = await _context.FitnessGoals
                 .FirstOrDefaultAsync(g => g.Id == id && g.UserId == userId);
