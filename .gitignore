@@ -1,17 +1,23 @@
+# Build output
+bin/
+obj/
+[Bb]in/
+[Oo]bj/
+publish/
+*.zip
+
 # Firebase credentials
 firebase-adminsdk.json
 **/firebase-adminsdk*.json
 credentials/*.json
 !credentials/credentials.example.json
 
-# Build output
-bin/
-obj/
-
 # IDE
 .vs/
 .vscode/
 *.user
+*.suo
+*.userprefs
 
 # Configuration files with secrets
 appsettings.json
@@ -25,7 +31,16 @@ logs/
 
 # Database
 *.db
-*.sqlite # Firebase credentials
-**/firebase-adminsdk.json
-**/credentials/*.json
-**/credentials/*.json >> .gitignore*/credentials/*.example.json
+*.sqlite
+
+# Dependencies
+node_modules/
+packages/
+*.nupkg
+
+# Temporary files
+*.swp
+*.*~
+project.lock.json
+.DS_Store
+*.pyc
