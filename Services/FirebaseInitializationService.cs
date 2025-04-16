@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.IO;
+using System.Text.Json;
 
 public class FirebaseInitializationService
 {
@@ -24,48 +25,50 @@ public class FirebaseInitializationService
         {
             if (FirebaseApp.DefaultInstance == null)
             {
-                if (_environment.IsProduction())
+                string jsonContent;
+                // if (_environment.IsProduction())
+                // {
+                    var firebaseSection = _configuration.GetSection("Firebase:Credentials");
+                
+                if (!firebaseSection.Exists())
                 {
-                    // Sử dụng biến môi trường trong môi trường sản xuất (Azure)
-                    Console.WriteLine("Production environment detected. Using environment variables for Firebase credentials.");
-                    var firebaseCredentialsJson = Environment.GetEnvironmentVariable("FIREBASE_CREDENTIALS");
-                    
-                    if (string.IsNullOrEmpty(firebaseCredentialsJson))
-                    {
-                        throw new InvalidOperationException("FIREBASE_CREDENTIALS environment variable is not set. Firebase initialization failed.");
-                    }
-                    
-                    var credential = GoogleCredential.FromJson(firebaseCredentialsJson);
-                    FirebaseApp.Create(new AppOptions()
-                    {
-                        Credential = credential
-                    });
-                    
-                    Console.WriteLine("Firebase initialized successfully using environment variable");
+                    throw new InvalidOperationException("Firebase credentials not found in configuration");
                 }
-                else
-                {
-                    // Sử dụng file cục bộ trong môi trường phát triển
-                    var pathToKey = Path.Combine(Directory.GetCurrentDirectory(), "credentials", "firebase-adminsdk.json");
-                    
-                    Console.WriteLine($"Development environment detected.");
-                    Console.WriteLine($"Current directory: {Directory.GetCurrentDirectory()}");
-                    Console.WriteLine($"Looking for credentials file at: {pathToKey}");
-                    
-                    if (!File.Exists(pathToKey))
-                    {
-                        throw new FileNotFoundException($"Firebase credentials file not found at {pathToKey}. Please create the file based on the example.json template.");
-                    }
 
-                    Console.WriteLine("Found credentials file, initializing Firebase...");
-                    var credential = GoogleCredential.FromFile(pathToKey);
-                    FirebaseApp.Create(new AppOptions()
-                    {
-                        Credential = credential
-                    });
-                    
-                    Console.WriteLine("Firebase initialized successfully using local file");
-                }
+                // Use JsonSerializerOptions to maintain the exact JSON structure
+                var jsonOptions = new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true
+                };
+
+                var credentials = firebaseSection.Get<Dictionary<string, object>>();
+                jsonContent = JsonSerializer.Serialize(credentials, jsonOptions);
+                Console.WriteLine($"Firebase: {jsonContent}");
+
+                // var credential = GoogleCredential.FromJson(jsonContent)
+                //     .CreateScoped("https://www.googleapis.com/auth/firebase");
+                
+                // FirebaseApp.Create(new AppOptions
+                // {
+                //     Credential = credential,
+                //     ProjectId = "mfquest-b89b0"
+                // });
+                // }
+                // else
+                // {
+                //     var pathToKey = Path.Combine(Directory.GetCurrentDirectory(), "credentials", "firebase-adminsdk.json");
+                //     Console.WriteLine($"Reading credentials from: {pathToKey}");
+                //     jsonContent = File.ReadAllText(pathToKey);
+                // }
+
+                var credential = GoogleCredential.FromJson(jsonContent);
+                FirebaseApp.Create(new AppOptions
+                {
+                    Credential = credential
+                });
+
+                Console.WriteLine("Firebase initialized successfully");
             }
             else
             {
@@ -79,4 +82,4 @@ public class FirebaseInitializationService
             throw;
         }
     }
-} 
+}
