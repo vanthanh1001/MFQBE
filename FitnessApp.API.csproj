@@ -30,6 +30,7 @@
   <ItemGroup>
     <None Include="credentials\firebase-adminsdk.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </None>
   </ItemGroup>
 

@@ -1,3 +1,11 @@
+# Build output
+bin/
+obj/
+[Bb]in/
+[Oo]bj/
+publish/
+*.zip
+
 # Firebase credentials
 firebase-adminsdk.json
 **/firebase-adminsdk*.json
@@ -24,6 +32,8 @@ bld/
 .vs/
 .vscode/
 *.user
+*.suo
+*.userprefs
 
 # Configuration files with secrets
 appsettings.json
@@ -37,10 +47,6 @@ logs/
 
 # Database
 *.db
-*.sqlite # Firebase credentials
-**/firebase-adminsdk.json
-**/credentials/*.json
-**/credentials/*.json >> .gitignore*/credentials/*.example.json
 
 # Visual Studio
 *.suo
@@ -100,6 +106,16 @@ artifacts/
 *.nuget.props
 *.nuget.targets
 
-# Local settings
-appsettings.Development.json
-appsettings.local.json
+*.sqlite
+
+# Dependencies
+node_modules/
+packages/
+*.nupkg
+
+# Temporary files
+*.swp
+*.*~
+project.lock.json
+.DS_Store
+*.pyc

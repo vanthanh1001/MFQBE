@@ -9,6 +9,7 @@ using Services.Implementations;
 using FitnessApp.API.Models;
 using FitnessApp.API.Middleware;
 using System.Security.Claims;
+using Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,9 +54,14 @@ builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 // Đăng ký AuthService
 // builder.Services.AddScoped<IAuthService, AuthService>();
 
+// Add PayOS service
+// Update the PayOS service registration
+builder.Services.AddScoped<IPaymentService, PayOSService>();
+builder.Services.AddHttpClient<PayOSService>();
+
 // Thêm service mới
 builder.Services.AddSingleton<FirebaseInitializationService>();
-builder.Services.AddScoped<IFirebaseAuthService, FirebaseAuthService>();
+builder.Services.AddScoped<Models.Interfaces.IFirebaseAuthService, Services.Implementations.FirebaseAuthService>();
 
 // Cấu hình Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -132,20 +138,31 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// if (app.Environment.IsDevelopment())
+// {
+//     app.UseSwagger();
+//     app.UseSwaggerUI(c =>
+//     {
+//         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Fitness API V1");
+//         c.RoutePrefix = "swagger";
+//         c.EnableDeepLinking();
+//         c.DisplayRequestDuration();
+//         c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
+//         c.EnableFilter();
+//         c.EnableTryItOutByDefault();
+//     });
+// }
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Fitness API V1");
-        c.RoutePrefix = "swagger";
-        c.EnableDeepLinking();
-        c.DisplayRequestDuration();
-        c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
-        c.EnableFilter();
-        c.EnableTryItOutByDefault();
-    });
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Fitness API V1");
+    c.RoutePrefix = "swagger";
+    c.EnableDeepLinking();
+    c.DisplayRequestDuration();
+    c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
+    c.EnableFilter();
+    c.EnableTryItOutByDefault();
+});
 
 app.UseHttpsRedirection();
 
@@ -163,11 +180,22 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Initialize Firebase BEFORE using any Firebase services
-var firebaseInit = app.Services.GetRequiredService<FirebaseInitializationService>();
-firebaseInit.Initialize();
+app.MapGet("/health-check", () => "Application is running");
+
+try
+{
+    // Initialize Firebase BEFORE using any Firebase services
+    var firebaseInit = app.Services.GetRequiredService<FirebaseInitializationService>();
+    firebaseInit.Initialize();
+    Console.WriteLine("Firebase initialized successfully");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Firebase initialization error: {ex.Message}");
+    // Tiếp tục chạy ứng dụng ngay cả khi Firebase khởi tạo thất bại
+}
 
 // Add middleware
 app.UseMiddleware<ErrorHandlingMiddleware>();
 
-app.Run(); 
+app.Run();
