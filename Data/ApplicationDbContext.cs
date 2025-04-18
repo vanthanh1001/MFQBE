@@ -187,5 +187,20 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(ep => ep.ExerciseId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
+
+        modelBuilder.Entity<Exercise>()
+        .Property(e => e.DetailImageUrls)
+        .HasConversion(
+            v => string.Join(',', v ?? new List<string>()),
+            v => string.IsNullOrEmpty(v) 
+                ? new List<string>() 
+                : v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList())
+        .HasDefaultValue(new List<string>())
+        .IsRequired();
+    
+        modelBuilder.Entity<Exercise>()
+            .Property(e => e.ThumbnailImageUrl)
+            .HasDefaultValue(string.Empty)
+            .IsRequired();
     }
-} 
+}

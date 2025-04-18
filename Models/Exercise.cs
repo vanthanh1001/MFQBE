@@ -11,6 +11,8 @@ namespace Models
         public int Sets { get; set; }
         public int Reps { get; set; }
         public int RestTime { get; set; } // in seconds
+        public string ThumbnailImageUrl { get; set; } = string.Empty; // Default empty string
+        public List<string> DetailImageUrls { get; set; } = new List<string>(); // Initialize with empty list
         public int CreatedById { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
@@ -19,4 +21,4 @@ namespace Models
         public virtual User CreatedBy { get; set; }
         public virtual ICollection<WorkoutPlan> WorkoutPlans { get; set; }
     }
-} 
+}

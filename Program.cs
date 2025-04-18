@@ -10,6 +10,8 @@ using FitnessApp.API.Models;
 using FitnessApp.API.Middleware;
 using System.Security.Claims;
 using Services.Interfaces;
+using FitnessApp.API.Services.Interfaces;
+using FitnessApp.API.Services.Implementations;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,6 +55,8 @@ builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
 // Đăng ký AuthService
 // builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IFirebaseStorageService, FirebaseStorageService>();
 
 // Add PayOS service
 // Update the PayOS service registration
