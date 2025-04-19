@@ -27,28 +27,48 @@ namespace Controllers
         [HttpGet("plans")]
         public async Task<ActionResult<IEnumerable<WorkoutPlanDto>>> GetUserWorkoutPlans()
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (user == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
+            
+            var userId = user.Id;
             
             var workoutPlans = await _context.WorkoutPlans
+                .Include(wp => wp.Exercises)
                 .Where(wp => wp.UserId == userId)
-                .Select(wp => new WorkoutPlanDto
-                {
-                    Id = wp.Id,
-                    Name = wp.Name,
-                    Description = wp.Description,
-                    DurationInMinutes = EstimateWorkoutDuration(wp.Exercises.ToList()),
-                    Difficulty = CalculateDifficulty(wp.Exercises.ToList()),
-                    ExerciseCount = wp.Exercises.Count
-                })
                 .ToListAsync();
                 
-            return Ok(workoutPlans);
+            var workoutPlanDtos = workoutPlans.Select(wp => new WorkoutPlanDto
+            {
+                Id = wp.Id,
+                Name = wp.Name,
+                Description = wp.Description,
+                DurationInMinutes = EstimateWorkoutDuration(wp.Exercises.ToList()),
+                Difficulty = CalculateDifficulty(wp.Exercises.ToList()),
+                ExerciseCount = wp.Exercises.Count
+            }).ToList();
+                
+            return Ok(workoutPlanDtos);
         }
 
         [HttpGet("plans/{id}")]
         public async Task<ActionResult<WorkoutPlanDetailDto>> GetWorkoutPlanDetail(int id)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (user == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
+            
+            var userId = user.Id;
             
             var plan = await _context.WorkoutPlans
                 .Include(wp => wp.Exercises)
@@ -86,7 +106,16 @@ namespace Controllers
         [HttpPost("plans")]
         public async Task<ActionResult<WorkoutPlanDto>> CreateWorkoutPlan([FromBody] CreateWorkoutPlanDto request)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (user == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
+            
+            var userId = user.Id;
             
             // Validate Exercise IDs
             var exerciseIds = request.ExerciseIds;
@@ -129,7 +158,16 @@ namespace Controllers
         [HttpPut("plans/{id}")]
         public async Task<IActionResult> UpdateWorkoutPlan(int id, [FromBody] CreateWorkoutPlanDto request)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (user == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
+            
+            var userId = user.Id;
             
             var workoutPlan = await _context.WorkoutPlans
                 .Include(wp => wp.Exercises)
@@ -171,7 +209,16 @@ namespace Controllers
         [HttpDelete("plans/{id}")]
         public async Task<IActionResult> DeleteWorkoutPlan(int id)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (user == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
+            
+            var userId = user.Id;
             
             var workoutPlan = await _context.WorkoutPlans
                 .FirstOrDefaultAsync(wp => wp.Id == id && wp.UserId == userId);
@@ -209,7 +256,16 @@ namespace Controllers
         [HttpPost("plans/share")]
         public async Task<ActionResult> ShareWorkoutPlan([FromBody] ShareWorkoutPlanDto request)
         {
-            var trainerId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var currentUser = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (currentUser == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
+            
+            var trainerId = currentUser.Id;
             
             // Kiểm tra xem người chia sẻ có phải PT không
             var trainer = await _context.Users.FindAsync(trainerId);
@@ -260,7 +316,16 @@ namespace Controllers
         [HttpGet("trainer/clients")]
         public async Task<ActionResult<IEnumerable<UserDto>>> GetTrainerClients()
         {
-            var trainerId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var currentUser = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (currentUser == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
+            
+            var trainerId = currentUser.Id;
             
             // Kiểm tra xem người gọi API có phải PT không
             var trainer = await _context.Users.FindAsync(trainerId);
@@ -293,7 +358,16 @@ namespace Controllers
         [HttpGet("trainer/exercises")]
         public async Task<ActionResult<IEnumerable<ExerciseResponseDto>>> GetTrainerExercises()
         {
-            var trainerId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var currentUser = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (currentUser == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
+            
+            var trainerId = currentUser.Id;
             
             // Lấy tất cả bài tập do PT này tạo
             var exercises = await _context.Exercises
@@ -350,7 +424,7 @@ namespace Controllers
 
         #region Helper Methods
         
-        private int EstimateWorkoutDuration(List<Exercise> exercises)
+        private static int EstimateWorkoutDuration(List<Exercise> exercises)
         {
             int totalDuration = 0;
             foreach (var exercise in exercises)
@@ -364,7 +438,7 @@ namespace Controllers
             return (int)Math.Ceiling(totalDuration / 60.0);
         }
         
-        private string CalculateDifficulty(List<Exercise> exercises)
+        private static string CalculateDifficulty(List<Exercise> exercises)
         {
             if (exercises.Count == 0)
                 return "Beginner";
