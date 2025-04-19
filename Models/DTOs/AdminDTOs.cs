@@ -43,16 +43,21 @@ namespace Models.DTOs
     public class CreateAdminDto
     {
         [Required]
-        [EmailAddress]
-        public string Email { get; set; }
-
+        [StringLength(50)]
+        public string Username { get; set; }
+        
         [Required]
-        [MinLength(6)]
+        [EmailAddress]
+        [StringLength(100)]
+        public string Email { get; set; }
+        
+        [Required]
+        [StringLength(50, MinimumLength = 6)]
         public string Password { get; set; }
-
+        
         [Required]
         public string DisplayName { get; set; }
-
+        
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
         public string? PhoneNumber { get; set; }
@@ -61,7 +66,7 @@ namespace Models.DTOs
     public class ResetUserPasswordDto
     {
         [Required]
-        [MinLength(6)]
+        [StringLength(50, MinimumLength = 6)]
         public string NewPassword { get; set; }
     }
     #endregion
@@ -84,11 +89,12 @@ namespace Models.DTOs
     {
         [Required]
         public bool IsApproved { get; set; }
+        
         public string? RejectionReason { get; set; }
     }
     #endregion
 
-    #region Payment Management
+    #region Payments and Subscriptions
     public class PaymentDto
     {
         public int Id { get; set; }
@@ -115,42 +121,6 @@ namespace Models.DTOs
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public bool AutoRenew { get; set; }
-    }
-
-    public class SubscriptionPlanDto
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public decimal Price { get; set; }
-        public string Currency { get; set; }
-        public int DurationDays { get; set; }
-        public bool IsActive { get; set; }
-        public List<string> Features { get; set; }
-    }
-
-    public class CreateSubscriptionPlanDto
-    {
-        [Required]
-        public string Name { get; set; }
-        
-        [Required]
-        public string Description { get; set; }
-        
-        [Required]
-        [Range(0, 1000000)]
-        public decimal Price { get; set; }
-        
-        [Required]
-        public string Currency { get; set; }
-        
-        [Required]
-        [Range(1, 3650)]
-        public int DurationDays { get; set; }
-        
-        public bool IsActive { get; set; } = true;
-        
-        public List<string> Features { get; set; }
     }
     #endregion
 

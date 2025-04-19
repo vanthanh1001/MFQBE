@@ -28,6 +28,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<ExercisePerformance> ExercisePerformances { get; set; }
     public DbSet<FitnessGoal> FitnessGoals { get; set; }
     public DbSet<Meal> Meals { get; set; }
+    public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+    public DbSet<UserSubscription> UserSubscriptions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -185,6 +187,43 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(ep => ep.Exercise)
                 .WithMany()
                 .HasForeignKey(ep => ep.ExerciseId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // SubscriptionPlan configuration
+        modelBuilder.Entity<SubscriptionPlan>(entity =>
+        {
+            entity.ToTable("SubscriptionPlans");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.Price).IsRequired().HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.DurationInDays).IsRequired();
+            entity.Property(e => e.Features).HasMaxLength(255);
+        });
+
+        // UserSubscription configuration
+        modelBuilder.Entity<UserSubscription>(entity =>
+        {
+            entity.ToTable("UserSubscriptions");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.StartDate).IsRequired();
+            entity.Property(e => e.EndDate).IsRequired();
+            entity.Property(e => e.Status).IsRequired();
+            entity.Property(e => e.PaidAmount).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.TransactionId).HasMaxLength(100);
+            entity.Property(e => e.PaymentMethod).HasMaxLength(50);
+
+            entity.HasOne(us => us.User)
+                .WithMany(u => u.Subscriptions)
+                .HasForeignKey(us => us.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(us => us.SubscriptionPlan)
+                .WithMany(sp => sp.UserSubscriptions)
+                .HasForeignKey(us => us.SubscriptionPlanId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }
