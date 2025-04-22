@@ -2,7 +2,6 @@ C:\Users\Lenovo\OneDrive\Desktop\FitnessApp.API\MFQBE\bin\Debug\net8.0\appsettin
 C:\Users\Lenovo\OneDrive\Desktop\FitnessApp.API\MFQBE\bin\Debug\net8.0\appsettings.example.json
 C:\Users\Lenovo\OneDrive\Desktop\FitnessApp.API\MFQBE\bin\Debug\net8.0\appsettings.json
 C:\Users\Lenovo\OneDrive\Desktop\FitnessApp.API\MFQBE\bin\Debug\net8.0\credentials\credentials.example.json
-C:\Users\Lenovo\OneDrive\Desktop\FitnessApp.API\MFQBE\bin\Debug\net8.0\credentials\firebase-adminsdk.example.json
 C:\Users\Lenovo\OneDrive\Desktop\FitnessApp.API\MFQBE\bin\Debug\net8.0\credentials\firebase-adminsdk.json
 C:\Users\Lenovo\OneDrive\Desktop\FitnessApp.API\MFQBE\bin\Debug\net8.0\FitnessApp.API.staticwebassets.runtime.json
 C:\Users\Lenovo\OneDrive\Desktop\FitnessApp.API\MFQBE\bin\Debug\net8.0\FitnessApp.API.exe
@@ -201,3 +200,4 @@ C:\Users\Lenovo\OneDrive\Desktop\FitnessApp.API\MFQBE\obj\Debug\net8.0\refint\Fi
 C:\Users\Lenovo\OneDrive\Desktop\FitnessApp.API\MFQBE\obj\Debug\net8.0\FitnessApp.API.pdb
 C:\Users\Lenovo\OneDrive\Desktop\FitnessApp.API\MFQBE\obj\Debug\net8.0\FitnessApp.API.genruntimeconfig.cache
 C:\Users\Lenovo\OneDrive\Desktop\FitnessApp.API\MFQBE\obj\Debug\net8.0\ref\FitnessApp.API.dll
+C:\Users\Lenovo\OneDrive\Desktop\FitnessApp.API\MFQBE\bin\Debug\net8.0\credentials\credentials.json

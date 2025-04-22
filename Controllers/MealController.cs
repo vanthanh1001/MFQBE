@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using Models;
 using Models.DTOs;
 using System.Text.Json;
+using System.Linq;
+using System.Security.Claims;
 
 namespace Controllers
 {
@@ -28,11 +30,21 @@ namespace Controllers
         {
             try
             {
-                var userId = int.Parse(User.FindFirst("userId")?.Value ?? "0");
-                if (userId == 0)
+                var firebaseUid = User.FindFirst("user_id")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(firebaseUid))
                 {
                     return Unauthorized("Không thể xác định người dùng");
                 }
+
+                // Tìm user từ Firebase UID
+                var users = await _userRepository.FindAsync(u => u.FirebaseUid == firebaseUid);
+                var user = users.FirstOrDefault();
+                if (user == null)
+                {
+                    return Unauthorized("Người dùng không tồn tại");
+                }
+
+                var userId = user.Id;
 
                 IEnumerable<Meal> meals;
                 if (date.HasValue)
@@ -75,11 +87,21 @@ namespace Controllers
         {
             try
             {
-                var userId = int.Parse(User.FindFirst("userId")?.Value ?? "0");
-                if (userId == 0)
+                var firebaseUid = User.FindFirst("user_id")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(firebaseUid))
                 {
                     return Unauthorized("Không thể xác định người dùng");
                 }
+
+                // Tìm user từ Firebase UID
+                var users = await _userRepository.FindAsync(u => u.FirebaseUid == firebaseUid);
+                var user = users.FirstOrDefault();
+                if (user == null)
+                {
+                    return Unauthorized("Người dùng không tồn tại");
+                }
+
+                var userId = user.Id;
 
                 var meal = await _mealRepository.GetByIdAsync(id);
                 if (meal == null || meal.UserId != userId)
@@ -113,11 +135,21 @@ namespace Controllers
         {
             try
             {
-                var userId = int.Parse(User.FindFirst("userId")?.Value ?? "0");
-                if (userId == 0)
+                var firebaseUid = User.FindFirst("user_id")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(firebaseUid))
                 {
                     return Unauthorized("Không thể xác định người dùng");
                 }
+
+                // Tìm user từ Firebase UID
+                var users = await _userRepository.FindAsync(u => u.FirebaseUid == firebaseUid);
+                var user = users.FirstOrDefault();
+                if (user == null)
+                {
+                    return Unauthorized("Người dùng không tồn tại");
+                }
+
+                var userId = user.Id;
 
                 var ingredients = JsonSerializer.Serialize(createMealDto.Ingredients);
 
@@ -157,11 +189,21 @@ namespace Controllers
         {
             try
             {
-                var userId = int.Parse(User.FindFirst("userId")?.Value ?? "0");
-                if (userId == 0)
+                var firebaseUid = User.FindFirst("user_id")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(firebaseUid))
                 {
                     return Unauthorized("Không thể xác định người dùng");
                 }
+
+                // Tìm user từ Firebase UID
+                var users = await _userRepository.FindAsync(u => u.FirebaseUid == firebaseUid);
+                var user = users.FirstOrDefault();
+                if (user == null)
+                {
+                    return Unauthorized("Người dùng không tồn tại");
+                }
+
+                var userId = user.Id;
 
                 var meal = await _mealRepository.GetByIdAsync(id);
                 if (meal == null || meal.UserId != userId)
@@ -193,11 +235,21 @@ namespace Controllers
         {
             try
             {
-                var userId = int.Parse(User.FindFirst("userId")?.Value ?? "0");
-                if (userId == 0)
+                var firebaseUid = User.FindFirst("user_id")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(firebaseUid))
                 {
                     return Unauthorized("Không thể xác định người dùng");
                 }
+
+                // Tìm user từ Firebase UID
+                var users = await _userRepository.FindAsync(u => u.FirebaseUid == firebaseUid);
+                var user = users.FirstOrDefault();
+                if (user == null)
+                {
+                    return Unauthorized("Người dùng không tồn tại");
+                }
+
+                var userId = user.Id;
 
                 var meal = await _mealRepository.GetByIdAsync(id);
                 if (meal == null || meal.UserId != userId)
