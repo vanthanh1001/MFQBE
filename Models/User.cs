@@ -31,6 +31,7 @@ namespace Models
         public virtual ICollection<UserChallenge> UserChallenges { get; set; }
         public virtual ICollection<Nutrition> Nutritions { get; set; }
         public virtual ICollection<WorkoutSession> WorkoutSessions { get; set; }
+        public virtual ICollection<UserSubscription> Subscriptions { get; set; }
 
         // Constructor để khởi tạo danh sách
         public User()
@@ -40,6 +41,7 @@ namespace Models
             WorkoutSessions = new List<WorkoutSession>();
             UserChallenges = new List<UserChallenge>();
             Nutritions = new List<Nutrition>();
+            Subscriptions = new List<UserSubscription>();
         }
     }
 } 

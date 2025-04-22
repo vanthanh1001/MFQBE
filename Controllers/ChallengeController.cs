@@ -8,6 +8,7 @@ using Models.DTOs;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Security.Claims;
+using Models.Enums;
 
 namespace Controllers
 {
@@ -72,9 +73,29 @@ namespace Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ChallengeDto>> CreateChallenge([FromBody] ChallengeDto challengeDto)
         {
+            // Lấy Firebase UID từ claim
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+            {
+                return Unauthorized("User không hợp lệ");
+            }
+
+            // Tìm userId từ firebaseUid
+            var users = await _userRepository.FindAsync(u => u.FirebaseUid == firebaseUid);
+            var user = users.FirstOrDefault();
+            if (user == null)
+            {
+                return Unauthorized("User không tồn tại");
+            }
+
+            // Kiểm tra quyền Admin
+            if (user.Role != UserRole.Admin)
+            {
+                return Forbid("Bạn không có quyền tạo thử thách. Chỉ Admin mới có thể tạo thử thách mới.");
+            }
+
             if (challengeDto.StartDate >= challengeDto.EndDate)
             {
                 return BadRequest("End date must be later than start date");
@@ -99,9 +120,29 @@ namespace Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateChallenge(int id, [FromBody] ChallengeDto challengeDto)
         {
+            // Lấy Firebase UID từ claim
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+            {
+                return Unauthorized("User không hợp lệ");
+            }
+
+            // Tìm userId từ firebaseUid
+            var users = await _userRepository.FindAsync(u => u.FirebaseUid == firebaseUid);
+            var user = users.FirstOrDefault();
+            if (user == null)
+            {
+                return Unauthorized("User không tồn tại");
+            }
+
+            // Kiểm tra quyền Admin
+            if (user.Role != UserRole.Admin)
+            {
+                return Forbid("Bạn không có quyền cập nhật thử thách. Chỉ Admin mới có thể cập nhật thử thách.");
+            }
+                
             if (id != challengeDto.Id)
                 return BadRequest("Challenge ID mismatch");
                 
@@ -129,9 +170,29 @@ namespace Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteChallenge(int id)
         {
+            // Lấy Firebase UID từ claim
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+            {
+                return Unauthorized("User không hợp lệ");
+            }
+
+            // Tìm userId từ firebaseUid
+            var users = await _userRepository.FindAsync(u => u.FirebaseUid == firebaseUid);
+            var user = users.FirstOrDefault();
+            if (user == null)
+            {
+                return Unauthorized("User không tồn tại");
+            }
+
+            // Kiểm tra quyền Admin
+            if (user.Role != UserRole.Admin)
+            {
+                return Forbid("Bạn không có quyền xóa thử thách. Chỉ Admin mới có thể xóa thử thách.");
+            }
+                
             var challenge = await _challengeRepository.GetByIdAsync(id);
             if (challenge == null)
                 return NotFound($"Challenge with ID {id} not found");

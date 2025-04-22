@@ -59,7 +59,14 @@ namespace Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<UserDto>> GetTrainerById(int id)
         {
-            var trainerId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var currentUser = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (currentUser == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
             
             var trainer = await _userRepository.GetByIdAsync(id);
             if (trainer == null || trainer.Role != UserRole.Trainer)
@@ -85,9 +92,16 @@ namespace Controllers
         [HttpGet("profile")]
         public async Task<ActionResult<UserDto>> GetMyProfile()
         {
-            var trainerId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var currentUser = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (currentUser == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
             
-            var trainer = await _userRepository.GetByIdAsync(trainerId);
+            var trainer = await _userRepository.GetByIdAsync(currentUser.Id);
             if (trainer == null || trainer.Role != UserRole.Trainer)
                 return NotFound();
                 
@@ -170,8 +184,16 @@ namespace Controllers
         [HttpGet("exercises")]
         public async Task<ActionResult<IEnumerable<ExerciseResponseDto>>> GetTrainerExercises()
         {
-            var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-            var user = await _userRepository.GetByIdAsync(currentUserId);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var currentUser = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (currentUser == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
+
+            var user = await _userRepository.GetByIdAsync(currentUser.Id);
 
             if (user.Role != UserRole.Trainer && user.Role != UserRole.Admin)
             {
@@ -179,7 +201,7 @@ namespace Controllers
             }
 
             var exercises = await _context.Exercises
-                .Where(e => e.CreatedById == currentUserId)
+                .Where(e => e.CreatedById == currentUser.Id)
                 .Include(e => e.CreatedBy)
                 .Select(e => new ExerciseResponseDto
                 {
@@ -202,8 +224,16 @@ namespace Controllers
         [HttpGet("clients")]
         public async Task<ActionResult<IEnumerable<UserDto>>> GetClientsForTrainer()
         {
-            var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-            var user = await _userRepository.GetByIdAsync(currentUserId);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var currentUser = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (currentUser == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
+
+            var user = await _userRepository.GetByIdAsync(currentUser.Id);
 
             if (user.Role != UserRole.Trainer)
             {
@@ -233,8 +263,16 @@ namespace Controllers
         [HttpPost("become-trainer")]
         public async Task<ActionResult> BecomeTrainer()
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-            var user = await _userRepository.GetByIdAsync(userId);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var currentUser = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (currentUser == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
+
+            var user = await _userRepository.GetByIdAsync(currentUser.Id);
 
             if (user == null)
                 return NotFound("Không tìm thấy người dùng");
@@ -255,8 +293,16 @@ namespace Controllers
         [HttpPost("workouts/share")]
         public async Task<ActionResult> ShareWorkoutWithClient([FromBody] ShareWorkoutPlanDto request)
         {
-            var trainerId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-            var trainer = await _userRepository.GetByIdAsync(trainerId);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var currentUser = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (currentUser == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
+
+            var trainer = await _userRepository.GetByIdAsync(currentUser.Id);
 
             if (trainer.Role != UserRole.Trainer)
                 return Forbid("Chỉ PT mới có thể chia sẻ bài tập");
@@ -264,7 +310,7 @@ namespace Controllers
             // Kiểm tra xem workout plan có tồn tại và thuộc về PT này không
             var workoutPlan = await _context.WorkoutPlans
                 .Include(wp => wp.Exercises)
-                .FirstOrDefaultAsync(wp => wp.Id == request.WorkoutPlanId && wp.UserId == trainerId);
+                .FirstOrDefaultAsync(wp => wp.Id == request.WorkoutPlanId && wp.UserId == currentUser.Id);
                 
             if (workoutPlan == null)
                 return NotFound("Không tìm thấy workout plan hoặc bạn không có quyền truy cập");
@@ -299,8 +345,16 @@ namespace Controllers
             if (file == null || file.Length == 0)
                 return BadRequest("Không có file được gửi lên");
 
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-            var user = await _userRepository.GetByIdAsync(userId);
+            var firebaseUid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(firebaseUid))
+                return Unauthorized();
+                
+            // Tìm userId từ firebaseUid
+            var currentUser = await _context.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (currentUser == null)
+                return Unauthorized(new { message = "Người dùng không tồn tại" });
+
+            var user = await _userRepository.GetByIdAsync(currentUser.Id);
 
             if (user.Role != UserRole.Trainer)
                 return Forbid("Chỉ PT mới có thể sử dụng API này");

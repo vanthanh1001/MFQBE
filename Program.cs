@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using Google.Apis.Auth.OAuth2;
 using Models.Interfaces;
 using Services.Implementations;
+using Services.Interfaces;
 using FitnessApp.API.Models;
 using FitnessApp.API.Middleware;
 using System.Security.Claims;
@@ -63,9 +64,10 @@ builder.Services.AddScoped<IFirebaseStorageService, FirebaseStorageService>();
 builder.Services.AddScoped<IPaymentService, PayOSService>();
 builder.Services.AddHttpClient<PayOSService>();
 
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 // Thêm service mới
 builder.Services.AddSingleton<FirebaseInitializationService>();
-builder.Services.AddScoped<Models.Interfaces.IFirebaseAuthService, Services.Implementations.FirebaseAuthService>();
+builder.Services.AddScoped<IFirebaseAuthService, FirebaseAuthService>();
 
 // Cấu hình Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

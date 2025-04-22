@@ -1,7 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.SqlServer;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Models;
 using Models.Enums;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 public class ApplicationDbContext : DbContext
 {
@@ -28,6 +32,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<ExercisePerformance> ExercisePerformances { get; set; }
     public DbSet<FitnessGoal> FitnessGoals { get; set; }
     public DbSet<Meal> Meals { get; set; }
+    public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+    public DbSet<UserSubscription> UserSubscriptions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -188,19 +194,67 @@ public class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        // Fix for Exercise.DetailImageUrls
         modelBuilder.Entity<Exercise>()
-        .Property(e => e.DetailImageUrls)
-        .HasConversion(
-            v => string.Join(',', v ?? new List<string>()),
-            v => string.IsNullOrEmpty(v) 
-                ? new List<string>() 
-                : v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList())
-        .HasDefaultValue(new List<string>())
-        .IsRequired();
-    
+            .Property(e => e.DetailImageUrls)
+            .HasConversion(
+                v => string.Join(',', v ?? new List<string>()),
+                v => string.IsNullOrEmpty(v) 
+                    ? new List<string>() 
+                    : v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList())
+            .Metadata.SetValueComparer(new ValueComparer<List<string>>(
+                (c1, c2) => c1.SequenceEqual(c2),
+                c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                c => c.ToList()));
+        
+        // Fix for Exercise.ThumbnailImageUrl
         modelBuilder.Entity<Exercise>()
             .Property(e => e.ThumbnailImageUrl)
-            .HasDefaultValue(string.Empty)
-            .IsRequired();
+            .IsRequired(false);
+        
+        // Fix for decimal precision in FitnessGoal
+        modelBuilder.Entity<FitnessGoal>()
+            .Property(g => g.CurrentValue)
+            .HasPrecision(18, 2);
+        
+        modelBuilder.Entity<FitnessGoal>()
+            .Property(g => g.TargetValue)
+            .HasPrecision(18, 2);
+        // SubscriptionPlan configuration
+        modelBuilder.Entity<SubscriptionPlan>(entity =>
+        {
+            entity.ToTable("SubscriptionPlans");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.Price).IsRequired().HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.DurationInDays).IsRequired();
+            entity.Property(e => e.Features).HasMaxLength(255);
+        });
+
+        // UserSubscription configuration
+        modelBuilder.Entity<UserSubscription>(entity =>
+        {
+            entity.ToTable("UserSubscriptions");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.StartDate).IsRequired();
+            entity.Property(e => e.EndDate).IsRequired();
+            entity.Property(e => e.Status).IsRequired();
+            entity.Property(e => e.PaidAmount).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.TransactionId).HasMaxLength(100);
+            entity.Property(e => e.PaymentMethod).HasMaxLength(50);
+
+            entity.HasOne(us => us.User)
+                .WithMany(u => u.Subscriptions)
+                .HasForeignKey(us => us.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(us => us.SubscriptionPlan)
+                .WithMany(sp => sp.UserSubscriptions)
+                .HasForeignKey(us => us.SubscriptionPlanId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 }
